@@ -14,7 +14,7 @@ object AppMain {
     implicit val materializer = SystemMaterializer(system).materializer
     implicit val ec: ExecutionContextExecutor = system.executionContext
 
-    val grpcClient = new LambdaGrpcClient("lambda-grpc-endpoint", 8080)
+    val grpcClient = new LambdaGrpcClient(" ", 8080)
     val routes = new LambdaRoutes(grpcClient)
 
     val bindingFuture = Http().newServerAt("0.0.0.0", 8080).bind(routes.route)
