@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  LambdaHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: LLMLambdaHandler::handleRequest
+      Runtime: java11  # Change this from java8 to java11 or java17
+      CodeUri: ./target/scala-2.12/Exercises441-assembly-0.1.0-SNAPSHOT.jar
+      MemorySize: 1024
+      Timeout: 10
+      Events:
+        HelloWorldApi:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: POST

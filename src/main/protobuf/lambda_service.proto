@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+//package lambdaservice;
+
+
+// The gRPC service
+service LambdaService {
+  rpc InvokeLambda (LambdaRequest) returns (LambdaResponse);
+}
+
+// The request message
+message LambdaRequest {
+  string query = 1;
+}
+
+// The response message
+message LambdaResponse {
+  string result = 1;
+}
