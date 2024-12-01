@@ -1,7 +1,6 @@
 syntax = "proto3";
 
-//package lambdaservice;
-
+package lambda_service;
 
 // The gRPC service
 service LambdaService {

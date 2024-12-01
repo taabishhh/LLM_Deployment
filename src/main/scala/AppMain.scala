@@ -1,28 +1,61 @@
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.stream.SystemMaterializer
+import akka.stream.Materializer
+import com.typesafe.config.ConfigFactory
+import org.slf4j.{Logger, LoggerFactory}
 import routes.LambdaRoutes
-import services.LambdaGrpcClient
+import services.{LambdaGrpcClient, OllamaClient}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.io.StdIn
 
 object AppMain {
+  private val logger: Logger = LoggerFactory.getLogger(getClass)
+
+  private val config = ConfigFactory.load()
+  private val endpoint: String = config.getString("lambda.endpoint")
+  private val port: Int = config.getInt("lambda.port")
+
   def main(args: Array[String]): Unit = {
-    implicit val system: ActorSystem[Nothing] = ActorSystem(Behaviors.empty, "AkkaHttpServer")
-    implicit val materializer = SystemMaterializer(system).materializer
-    implicit val ec: ExecutionContextExecutor = system.executionContext
+    logger.info("Initializing Akka HTTP Server...")
 
-    val grpcClient = new LambdaGrpcClient(" ", 8080)
-    val routes = new LambdaRoutes(grpcClient)
+    implicit val system: ActorSystem = ActorSystem("AkkaHttpServer")
+    implicit val materializer: Materializer = Materializer(system)
+    implicit val ec: ExecutionContextExecutor = system.dispatcher
 
-    val bindingFuture = Http().newServerAt("0.0.0.0", 8080).bind(routes.route)
+    logger.info(s"System initialized: ActorSystem = ${system.name}")
 
-    println("Akka HTTP server running on port 8080. Press RETURN to stop...")
+    // Initialize gRPC client
+    val grpcClient = new LambdaGrpcClient(endpoint, port)
+    logger.info(s"gRPC Client initialized with endpoint: $endpoint and port: $port")
+
+    // Initialize Ollama client
+    val ollamaClient = new OllamaClient
+    logger.info("Ollama Client initialized")
+
+    // Set up routes
+    val lambdaRoutes = new LambdaRoutes(grpcClient, ollamaClient)
+    logger.info("Routes initialized")
+
+    // Start HTTP server
+    val bindingFuture = Http().newServerAt("localhost", 8080).bind(lambdaRoutes.route)
+    logger.info("Server binding initiated on http://localhost:8080/")
+
+    println("Server is running at http://localhost:8080/")
+    println("Press RETURN to stop...")
+
+    // Await user input to stop the server
     StdIn.readLine()
+
     bindingFuture
       .flatMap(_.unbind())
-      .onComplete(_ => system.terminate())
+      .onComplete {
+        case scala.util.Success(_) =>
+          logger.info("Server unbound successfully. Terminating the system...")
+          system.terminate()
+        case scala.util.Failure(ex) =>
+          logger.error("Error while unbinding the server:", ex)
+          system.terminate()
+      }
   }
 }
