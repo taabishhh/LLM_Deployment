@@ -42,7 +42,7 @@ Exercises441/
 ```
 
 ## Setup and Installation
-# Prerequisites
+### Prerequisites
 - Scala 2.12.13
 - SBT 1.8.0 or higher
 - Java 11 or higher
@@ -53,64 +53,62 @@ Exercises441/
 git clone <repository-url>
 cd Exercises441
 ```
-Install Dependencies: Ensure all dependencies are downloaded:
-
-bash
-Copy code
+2. Install Dependencies: Ensure all dependencies are downloaded:
+```
 sbt update
-Compile the Project:
-
-bash
-Copy code
+```
+3. Compile the Project:
+```
 sbt compile
-Run the Application:
-
-bash
-Copy code
+```
+4. Run the Application:
+```
 sbt run
-Test the Application: Run the test suite:
-
-bash
-Copy code
+```
+5. Test the Application: Run the test suite:
+```
 sbt test
-API Endpoints
+```
+
+## API Endpoints
 1. POST /process-request
-Description: Processes a user request and returns a response.
-Request Body:
-json
-Copy code
+- Description: Processes a user request and returns a response.
+- Request Body:
+```
 {
   "prompt": "Your query here"
 }
-Response Body:
-json
-Copy code
+```
+- Response Body:
+```
 {
   "prompt": "Your query here",
   "response": "Processed response from the system"
 }
+```
+
 Example curl Command:
-bash
-Copy code
+```
 curl -X POST http://localhost:8080/process-request \
      -H "Content-Type: application/json" \
-     -d '{"prompt": "Hello, can you help me?"}'
-Key Dependencies
-Build Tools
-SBT: Build tool for Scala projects.
-Libraries
-Akka HTTP: Provides REST API support.
-ScalaPB: gRPC and Protobuf integration.
-Circe & Spray JSON: JSON parsing and serialization.
-AWS SDK: AWS Lambda and Bedrock integration.
-SLF4J: Logging API.
-Testing
-ScalaTest: Unit testing framework.
-Configuration
-The application uses application.conf for configuration. Here’s an example configuration:
+     -d '{"body":"prompt": "Hello, can you help me?"}}'
+```
 
-hocon
-Copy code
+## Key Dependencies
+### Build Tools
+- SBT: Build tool for Scala projects.
+### Libraries
+- Akka HTTP: Provides REST API support.
+- ScalaPB: gRPC and Protobuf integration.
+- Circe & Spray JSON: JSON parsing and serialization.
+- AWS SDK: AWS Lambda and Bedrock integration.
+- SLF4J: Logging API.
+### Testing
+- ScalaTest: Unit testing framework.
+  
+## Configuration
+- The application uses **application.conf** for configuration. Here’s an example configuration:
+```
 akka {
   http {
     server {
@@ -124,4 +122,5 @@ ollama {
   request-timeout-seconds = 30
   model = "base-model"
 }
+```
 Ensure AWS credentials are configured in the environment or ~/.aws/credentials for AWS SDK integration.
