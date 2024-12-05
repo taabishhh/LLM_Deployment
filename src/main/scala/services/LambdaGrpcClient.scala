@@ -1,37 +1,71 @@
 package services
 
-import lambda_service.lambda_service.{LambdaRequest, LambdaResponse, LambdaServiceGrpc}
-import io.grpc.ManagedChannelBuilder
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import akka.stream.Materializer
+import spray.json._
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class LambdaGrpcClient(host: String, port: Int)(implicit ec: ExecutionContext) {
+// Request payload structure for the Lambda function
+case class LambdaRequest(prompt: String)
+
+// Structure of response details from the Lambda function
+case class ResponseDetails(generation: String)
+
+// Full response structure from the Lambda function
+case class LambdaResponse(prompt: String, response: ResponseDetails)
+
+// JSON format definitions for serialization/deserialization
+object LambdaJsonProtocol extends DefaultJsonProtocol {
+  implicit val lambdaRequestFormat: RootJsonFormat[LambdaRequest] = jsonFormat1(LambdaRequest)
+  implicit val responseDetailsFormat: RootJsonFormat[ResponseDetails] = jsonFormat1(ResponseDetails)
+  implicit val lambdaResponseFormat: RootJsonFormat[LambdaResponse] = jsonFormat2(LambdaResponse)
+}
+
+// Client for invoking the Lambda function via API Gateway
+class LambdaGrpcClient(apiGatewayUrl: String)
+                      (implicit system: ActorSystem, mat: Materializer, ec: ExecutionContext) {
+
+  import LambdaJsonProtocol._
+
   private val logger: Logger = LoggerFactory.getLogger(getClass)
-
-  // Initialize gRPC channel and stub
-  private val channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build()
-  private val stub = LambdaServiceGrpc.stub(channel)
-
-  logger.info(s"LambdaGrpcClient initialized with host: $host, port: $port")
+  private val http = Http(system)
 
   /**
-   * Invokes the Lambda gRPC service with the given query.
+   * Invokes the Lambda function and processes the response.
    *
-   * @param query The input query string.
-   * @return A Future containing the LambdaResponse.
+   * @param prompt The input prompt for the Lambda function.
+   * @return Future containing the LambdaResponse or an error.
    */
-  def invokeLambda(query: String): Future[LambdaResponse] = {
-    logger.debug(s"Preparing to invoke Lambda service with query: $query")
+  def invokeLambda(prompt: String): Future[LambdaResponse] = {
+    logger.info(s"Invoking Lambda function at $apiGatewayUrl")
 
-    val request = LambdaRequest(query = query)
+    // Create the request payload as JSON
+    val payload = LambdaRequest(prompt).toJson.toString()
 
-    stub.invokeLambda(request).map { response =>
-      logger.info(s"Received response from Lambda service: ${response.result}")
-      response
-    }.recover { case e: Exception =>
-      logger.error(s"Error invoking Lambda service: ${e.getMessage}", e)
-      throw e // Ensure the error is propagated if necessary
+    // Build the HTTP POST request
+    val httpRequest = HttpRequest(
+      method = HttpMethods.POST,
+      uri = apiGatewayUrl,
+      entity = HttpEntity(ContentTypes.`application/json`, payload)
+    )
+
+    // Send the request and handle the response
+    http.singleRequest(httpRequest).flatMap { response =>
+      response.status match {
+        case StatusCodes.OK =>
+          logger.info("Successful response from Lambda")
+          Unmarshal(response.entity).to[LambdaResponse]
+        case _ =>
+          val errorMsg = s"Failed to invoke Lambda. Status: ${response.status}"
+          logger.error(errorMsg)
+          Future.failed(new RuntimeException(errorMsg))
+      }
     }
   }
 }

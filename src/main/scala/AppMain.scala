@@ -6,8 +6,10 @@ import org.slf4j.{Logger, LoggerFactory}
 import routes.LambdaRoutes
 import services.{LambdaGrpcClient, OllamaClient}
 
-import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.io.StdIn
+import scala.util.{Failure, Success}
 
 object AppMain {
   private val logger: Logger = LoggerFactory.getLogger(getClass)
@@ -26,7 +28,7 @@ object AppMain {
     logger.info(s"System initialized: ActorSystem = ${system.name}")
 
     // Initialize gRPC client
-    val grpcClient = new LambdaGrpcClient(endpoint, port)
+    val grpcClient = new LambdaGrpcClient(endpoint)
     logger.info(s"gRPC Client initialized with endpoint: $endpoint and port: $port")
 
     // Initialize Ollama client
@@ -38,24 +40,23 @@ object AppMain {
     logger.info("Routes initialized")
 
     // Start HTTP server
-    val bindingFuture = Http().newServerAt("localhost", 8080).bind(lambdaRoutes.route)
+    val bindingFuture = Http().newServerAt("localhost", port).bind(lambdaRoutes.route)
     logger.info("Server binding initiated on http://localhost:8080/")
-
-    println("Server is running at http://localhost:8080/")
-    println("Press RETURN to stop...")
 
     // Await user input to stop the server
     StdIn.readLine()
 
-    bindingFuture
-      .flatMap(_.unbind())
-      .onComplete {
-        case scala.util.Success(_) =>
-          logger.info("Server unbound successfully. Terminating the system...")
-          system.terminate()
-        case scala.util.Failure(ex) =>
-          logger.error("Error while unbinding the server:", ex)
-          system.terminate()
-      }
+    bindingFuture.onComplete {
+      case Success(binding) =>
+        val address = binding.localAddress
+        logger.info(s"Server is running at http://${address.getHostString}:${address.getPort}/")
+        logger.info("Press CTRL+C to terminate...")
+      case Failure(ex) =>
+        logger.error("Failed to bind to 0.0.0.0:8080", ex)
+        system.terminate()
+    }
+
+    // Block the main thread and keep the application running
+    Await.result(system.whenTerminated, Duration.Inf)
   }
 }

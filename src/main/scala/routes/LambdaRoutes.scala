@@ -46,14 +46,14 @@ class LambdaRoutes(grpcClient: LambdaGrpcClient, ollamaClient: OllamaClient)(imp
 
       onComplete(grpcClient.invokeLambda(prompt)) {
         case Success(lambdaResponse) =>
-          val lambdaOutput = lambdaResponse.result
+          val lambdaOutput = lambdaResponse.response
           logger.info(s"Iteration $iteration: Received Lambda output: $lambdaOutput")
 
-          if (iteration > 10 || lambdaOutput.contains("exit")) {
+          if (iteration > 10 || lambdaOutput.generation.contains("exit")) {
             logger.info(s"Iteration $iteration: Terminating conversation.")
             complete(AgentResponse(prompt, "Conversation terminated.").toJson.toString)
           } else {
-            val nextPrompt = ollamaClient.generateNextQuery(lambdaOutput)
+            val nextPrompt = ollamaClient.generateNextQuery(lambdaOutput.generation)
             logger.debug(s"Iteration $iteration: Generated next query: $nextPrompt")
             conversationLoop(nextPrompt, iteration + 1)
           }
