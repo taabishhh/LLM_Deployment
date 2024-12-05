@@ -1,3 +1,4 @@
+
 # Exercises441-Homework3
 
 It is a Scala-based project built to demonstrate the use of gRPC, Akka HTTP, and JSON handling libraries for implementing a conversational system. The project integrates AWS SDKs, ScalaPB, and external APIs to process and handle requests efficiently.
@@ -35,6 +36,7 @@ Exercises441/
 │       │   ├── LambdaGrpcClientSpec.scala # Tests for LambdaGrpcClient
 │       │   ├── OllamaClientSpec.scala     # Tests for OllamaClient
 ├── build.sbt                     # SBT build definition
+├── Docker
 ├── project/
 │   ├── plugins.sbt               # SBT plugins
 │   └── build.properties          # SBT version
@@ -70,16 +72,60 @@ sbt run
 sbt test
 ```
 
+---
+
+## Running via Docker
+
+You can run this project using Docker. Follow the steps below:
+
+### Build the Docker Image
+```
+docker build -t my-scala-server .
+```
+
+### Run the Docker Container
+```
+docker run -d -p 8080:8080 my-scala-server
+```
+
+### Verify the Container is Running
+List running containers to get the container ID:
+```
+docker ps
+```
+
+### Access the Container Shell
+Use the container ID from the previous step to access the shell:
+```
+docker exec -it <container-id> sh
+```
+
+### Install Curl in the Container
+Update packages and install `curl`:
+```
+apt-get update && apt-get install -y curl
+```
+
+### Test the Application
+Send a request to the application using `curl`:
+```
+curl -X POST http://localhost:8080/process-request \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "Hello, can you help me?"}'
+```
+
+---
+
 ## API Endpoints
 1. POST /process-request
-- Description: Processes a user request and returns a response.
-- Request Body:
+- **Description**: Processes a user request and returns a response.
+- **Request Body**:
 ```
 {
   "prompt": "Your query here"
 }
 ```
-- Response Body:
+- **Response Body**:
 ```
 {
   "prompt": "Your query here",
@@ -91,36 +137,7 @@ Example curl Command:
 ```
 curl -X POST http://localhost:8080/process-request \
      -H "Content-Type: application/json" \
-     -d '{"body":"prompt": "Hello, can you help me?"}}'
+     -d '{"prompt": "Hello, can you help me?"}'
 ```
 
-## Key Dependencies
-### Build Tools
-- SBT: Build tool for Scala projects.
-### Libraries
-- Akka HTTP: Provides REST API support.
-- ScalaPB: gRPC and Protobuf integration.
-- Circe & Spray JSON: JSON parsing and serialization.
-- AWS SDK: AWS Lambda and Bedrock integration.
-- SLF4J: Logging API.
-### Testing
-- ScalaTest: Unit testing framework.
-  
-## Configuration
-- The application uses **application.conf** for configuration. Here’s an example configuration:
-```
-akka {
-  http {
-    server {
-      request-timeout = 30s
-    }
-  }
-}
-
-ollama {
-  host = "localhost"
-  request-timeout-seconds = 30
-  model = "base-model"
-}
-```
-Ensure AWS credentials are configured in the environment or ~/.aws/credentials for AWS SDK integration.
+---
