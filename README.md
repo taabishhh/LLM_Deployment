@@ -139,4 +139,4 @@ curl -X POST http://localhost:8080/process-request \
 
 You can watch a demonstration of this project in the video below:
 
-[![Watch the video](https://www.youtube.com/watch?v=aUt2Pgsak_0)
+[Project Video](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
