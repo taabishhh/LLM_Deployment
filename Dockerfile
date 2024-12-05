@@ -22,6 +22,8 @@ RUN sbt assembly
  # Stage 2: Create a lightweight runtime image
 FROM openjdk:11-jre-slim
 
+RUN apt-get update && apt-get install -y curl && apt-get clean
+
 WORKDIR /app
 COPY --from=builder /app/target/scala-2.12/Exercises441-assembly-0.1.0-SNAPSHOT.jar app.jar
 
