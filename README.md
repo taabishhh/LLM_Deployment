@@ -100,12 +100,6 @@ Use the container ID from the previous step to access the shell:
 docker exec -it <container-id> sh
 ```
 
-### Install Curl in the Container
-Update packages and install `curl`:
-```
-apt-get update && apt-get install -y curl
-```
-
 ### Test the Application
 Send a request to the application using `curl`:
 ```
